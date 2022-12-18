@@ -21,13 +21,14 @@ bkim - task1
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
+<!-- 
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
-
+ -->
 
 
 <!-- PROJECT LOGO
@@ -170,14 +171,14 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 <!-- ROADMAP -->
 ## Roadmap
 
-- [x] Add Changelog
-- [x] Add back to top links
-- [ ] Add Additional Templates w/ Examples
-- [ ] Add "components" document to easily copy & paste sections of the readme
-- [ ] Multi-language Support
-    - [ ] Chinese
-    - [ ] Spanish
+- [ ] NN-struktur zur Bilderkennung
+- [ ] Welche Parameter enthält das trainierte Modell?
+- [ ] Übergabe der Parameter von Client zu Coordinator
+- [ ] Wie verabeiten wir die verschiedenen Parameter im Coordinator?
+- [ ] Einheitliche Antwort oder individuelle Antwort an die Clients?
+- [ ] Rekursion einbauen bis gewünschte Accuracy erreicht ist
 
+<!-->
 See the [open issues](https://github.com/othneildrew/Best-README-Template/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

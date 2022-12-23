@@ -175,8 +175,10 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 - [ ] NN-struktur zur Bilderkennung
 - [ ] Welche Parameter enthält das trainierte Modell?
   - [ ] getting_started:
-    - [x] Weights können via torch.save(model.state_dict(), 'weights_only.pth') gespeichert werden
-    - [x] gesamtes Model (Architektur inkl. Weights) kann via torch.save(model, 'entire_model.pth') gespeichert werden
+    - [ ] Weights können via torch.save(model.state_dict(), 'weights_only.pth') gespeichert werden
+    - [ ] gesamtes Model (Architektur inkl. Weights) kann via torch.save(model, 'entire_model.pth') gespeichert werden
+  - [ ] https://medium.com/developing-federated-applications-in-featurecloud/communicate-data-across-clients-77b4d9fc8258
+    - [ ] data muss anscheinend ein numpy-Objekt sein? 
 - [ ] Übergabe der Parameter von Client zu Coordinator
 - [ ] Wie verabeiten wir die verschiedenen Parameter im Coordinator?
 - [ ] Einheitliche Antwort oder individuelle Antwort an die Clients?

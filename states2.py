@@ -61,22 +61,19 @@ class BroadcastState(AppState):
 wir sind participant und wollen die parameter empfangen
 wir nutzen die parameter um zu trainieren
 die trained_parameter schicken wir an den coordinator
-wir gehen über zum AGGREGATE_STATE
+wir gehen wieder in den TRAIN_STATE und warten auf die nächsten parameter
 '''
 @app_state(TRAIN_STATE, role=Role.Participant)
 class TrainState(AppState):
 
     def register(self):
-        self.register_transition(AGGREGATE_STATE, role=Role.COORDINATOR)
-        self.register_transition(WRITE_STATE)
+        self.register_transition(TRAIN_STATE)
 
     def run(self):
         parameter = self.await_data() # wir warten auf die parameter vom coordinator
         # NN training code goes here using parameter
         self.send_data_to_coordinator(trained_parameter) # wir schicken die trained_parameter an den coordinator
-        if self.is_coordinator:
-            return AGGREGATE_STATE
-        return WRITE_STATE
+        return TRAIN_STATE
 
 
 

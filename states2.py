@@ -36,16 +36,16 @@ class InitialState(AppState):
 wir sind coordinator und wollen die parameter verteilen
 danach gehen wir in den TRAIN_STATE
 '''
-@app_state(BROADCAST_STATE)
+@app_state(BROADCAST_STATE, role=Role.Coordinator)
 class BroadcastState(AppState):
 
     def register(self):
-        self.register_transition(TRAIN_STATE, role=Role.Participant)
+        self.register_transition(AGGREGATE_STATE, role=Role.Coordinator)
 
     def run(self):
         randomly_initialized_parameter = "lol"
         self.broadcast(randomly_initialized_parameter, send_to_self=False) # damit können wir die parameter an alle Clients verteilen
-        return TRAIN_STATE
+        return AGGREGATE_STATE
 
 
 
@@ -81,17 +81,19 @@ wir nutzen die trained_parameter um zu aggregieren
 wenn wir noch nicht alle communicationrounds durch haben, dann verteilen wir die aggregated_parameter an alle Clients
 wenn wir alle communicationrounds durch haben, dann gehen wir in den TERMINAL_STATE
 '''
-@app_state(AGGREGATE_STATE)
+@app_state(AGGREGATE_STATE, role=Role.Coordinator)
 class AggregateState(AppState):
 
     def register(self):
-        self.register_transition(WRITE_STATE, role=Role.Coordinator)
+        self.register_transition(BROADCAST_STATE, role=Role.Coordinator)
+        self.register_transition(TERMINAL_STATE, role=Role.Coordinator)
+
 
     def run(self):
         parameter = self.aggregate_data()
         # Aggregation code goes here
         if(communicationrounds != 0):
-            self.broadcast(parameter, send_to_self=False)
+            self.broadcast(weighted_parameter, send_to_self=False)
             return TRAIN_STATE
         return TERMINAL_STATE
 

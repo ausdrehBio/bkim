@@ -9,6 +9,7 @@ AGGREGATE_STATE = 'aggregate'
 WRITE_STATE = 'write'
 TERMINAL_STATE = 'terminal'
 BROADCAST_STATE = 'broadcast'
+WAIT_STATE = 'wait'
 
 
 
@@ -49,6 +50,7 @@ class BroadcastState(AppState):
         randomly_initialized_parameter = "lol"
         self.broadcast(randomly_initialized_parameter, send_to_self=False) # damit können wir die parameter an alle Clients verteilen
         return AGGREGATE_STATE
+
 
 
 

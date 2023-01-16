@@ -1,5 +1,8 @@
 from FeatureCloud.app.engine.app import AppState, app_state, Role
 
+# import NN_module
+# import Aggregation_module
+
 INITIAL_STATE = 'initial'
 TRAIN_STATE = 'train'
 AGGREGATE_STATE = 'aggregate'

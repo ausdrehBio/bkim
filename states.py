@@ -1,4 +1,4 @@
-from FeatureCloud.app.engine.app import AppState, app_state
+from FeatureCloud.app.engine.app import AppState, app_state, Role
 
 INITIAL_STATE = 'initial'
 TRAIN_STATE = 'train'
@@ -27,6 +27,7 @@ class TrainState(AppState):
         self.register_transition(WRITE_STATE)
 
     def run(self):
+        # NN training code goes here
         if self.is_coordinator:
             return AGGREGATE_STATE
         return WRITE_STATE
@@ -40,6 +41,7 @@ class AggregateState(AppState):
         self.register_transition(WRITE_STATE, role=Role.Coordinator)
 
     def run(self):
+        # Aggregation code goes here
         return ''
 
 

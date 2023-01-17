@@ -103,21 +103,5 @@ class AggregateState(AppState):
         return TERMINAL_STATE
     
 
-    def get_weights(self):
-    # Parameters:
-    # w : numpy.array
-        with torch.no_grad():
-            w=[]
-            for name, param in self.model.named_parameters():
-                w.append(param.data.clone().detach().cpu.numpy())
-        return w
 
-    def set_weights(self, w):
-        # Parameters:
-        # w : numpy.array
-        #       networks weights with arbitrary dimensions
-        with torch.no_grad():
-            for i, (name, param) in enumerate(self.model.named_parameters()):
-                p = w[i] if isinstance(w[i], np.ndarray) else np.array(w[i], dtype="float32")
-                param.data = torch.from_numpy(p).to(device=self.device)
 

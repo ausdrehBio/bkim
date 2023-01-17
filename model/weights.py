@@ -10,7 +10,7 @@ def get_weights(self):
   w = []
   for name, param in self.model.named_parameters():
     w.append(param.data.clone().detach().cpu().numpy())
-      return w
+  return w
 
 def set_weights(self, w):
   """ 

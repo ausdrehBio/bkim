@@ -1,4 +1,4 @@
-"""
+
 from torch import nn
 import torch.optim as optim
 import torch
@@ -22,4 +22,4 @@ def set_weights(self, w):
   with torch.no_grad():
     for i, (name, param) in enumerate(self.model.named_parameters()):
       p = w[i] if isinstance(w[i], np.ndarray) else np.array(w[i], dtype='float32')
-      param.data = torch.from_numpy(p).to(device=self.device)
+      param.data = torch.from_numpy(p).to(device=torch.device)

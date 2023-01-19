@@ -98,7 +98,8 @@ class AggregateState(AppState):
         parameter = self.aggregate_data()
         # Aggregation code goes here
         if(communicationrounds != 0):
-            self.broadcast(weighted_parameter, send_to_self=False)
+            self.broadcast(trained_parameter, send_to_self=False)
+            #self.broadcast(weighted_parameter, send_to_self=False)
             return TRAIN_STATE
         return TERMINAL_STATE
     

@@ -1,11 +1,10 @@
 from .dataset import ImageDataset, get_dataloaders
-from .model import CNN
+from .model import FederatedCNN
 from .util import get_device
-import .weights
 
 __all__ = [
     "ImageDataset",
     "get_dataloaders",
-    "CNN",
+    "FederatedCNN",
     "get_device",
 ]

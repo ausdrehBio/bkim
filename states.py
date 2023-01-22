@@ -4,8 +4,7 @@ from model.weights import average_weights
 from model.dataset import get_dataloaders
 
 # FRAGE: wo wird wann was importiert? welche dateien in welchem zustand? jp mb
-# wie kriegehn wir das 'Grosse-Ganze' zusammen?
-# Start-routine?
+
 
 INITIAL_STATE = 'initial'
 TRAIN_STATE = 'train'
@@ -13,8 +12,6 @@ AGGREGATE_STATE = 'aggregate'
 WRITE_STATE = 'write'
 TERMINAL_STATE = 'terminal'
 BROADCAST_STATE = 'broadcast'
-WAIT_STATE = 'wait'
-
 
 
 ''' 
@@ -30,7 +27,10 @@ class InitialState(AppState):
         self.register_transition(BROADCAST_STATE, role=Role.Coordinator)
 
     def run(self):
-        
+
+        self.store('iteration', 0)
+        self.store('epochs', 20)
+
         self.log("Reading data...")
         data = get_dataloaders()
         self.store('data', data)
@@ -87,13 +87,18 @@ class TrainState(AppState):
         model.train(data)
         self.log('Finished training local model...')
 
-        local_parameters = model.get_state_dict()
+        local_parameters = model.get_parameters
         self.log('Sending data to coordinator...')
-        self.send_data_to_coordinator(local_parameters)
+        self.send_data_to_coordinator([local_parameters])
 
-        if self.is_coordinator:
-            return AGGREGATE_STATE
-        return WRITE_STATE
+        epochs = self.load('epochs')
+        iteration = self.load('iteration')
+        
+        if iteration <= epochs:
+            if self.is_coordinator:
+                return AGGREGATE_STATE
+            return TRAIN_STATE
+        return TERMINAL_STATE
 
 
 '''
@@ -114,7 +119,12 @@ class AggregateState(AppState):
         model = self.load('model')
         aggregated_parameters = average_weights(parameters, model) #model NN wie TRAIN STATE jo, mb
 
-        if(communicationrounds != 0):
+        epochs = self.load('epochs')
+        current_iteration = self.load('iteration')
+        current_iteration += 1
+        self.store('iteration', current_iteration)
+
+        if (current_iteration <= epochs):
             self.broadcast(aggregated_parameters, send_to_self=False)
             return TRAIN_STATE
         return TERMINAL_STATE

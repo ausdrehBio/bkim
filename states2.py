@@ -2,6 +2,7 @@ from FeatureCloud.app.engine.app import AppState, app_state, Role
 
 # import NN_module
 # import Aggregation_module
+# import weights #(get_weights and set_weights) Line 99
 
 INITIAL_STATE = 'initial'
 TRAIN_STATE = 'train'
@@ -71,6 +72,7 @@ class TrainState(AppState):
         self.register_transition(WRITE_STATE)
 
     def run(self):
+        #warum hier nicht 'trained_parameter'??? übergeben wir später dem Coordinator, nicht?
         parameter = self.await_data() # wir warten auf die parameter vom coordinator
         # NN training code goes here using parameter
         self.send_data_to_coordinator(trained_parameter) # wir schicken die trained_parameter an den coordinator
@@ -95,6 +97,7 @@ class AggregateState(AppState):
 
 
     def run(self):
+        #Warum hier auch nicht tranined_parameter? 
         parameter = self.aggregate_data()
         # Aggregation code goes here
         if(communicationrounds != 0):

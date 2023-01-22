@@ -12,6 +12,7 @@ def get_weights(self):
     w.append(param.data.clone().detach().cpu().numpy())
   return w
 
+#braucht das das NN-model???? jp mb
 def set_weights(self, w):
   """ 
   Parameters

@@ -23,3 +23,18 @@ def set_weights(self, w):
     for i, (name, param) in enumerate(self.model.named_parameters()):
       p = w[i] if isinstance(w[i], np.ndarray) else np.array(w[i], dtype='float32')
       param.data = torch.from_numpy(p).to(device=torch.device)
+
+      
+      #code update von mb aus mohammad repo fc.deepl
+  def average_weights(self, params, client_model):
+    global_weights = [np.array(client_model.get_weights(), dtype='object') * 0] * self.load('n_splits')
+    total_n_samples = [0] * self.load('n_splits')
+    for client_models in params:
+      for model_counter, (weights, n_samples) in enumerate(client_models):
+        global_weights[model_counter] += np.array(weights, dtype='object') * n_samples
+        total_n_samples[model_counter] += n_samples
+      updated_weights = []
+      for counter, (w, n) in enumerate(zip(global_weights, total_n_samples)):
+        updated_weights.append(w / n)
+      return updated_weights
+  

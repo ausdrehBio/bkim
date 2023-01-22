@@ -5,6 +5,8 @@ from FeatureCloud.app.engine.app import AppState, app_state, Role
 # import weights #(get_weights and set_weights) Line 99
 
 # FRAGE: wo wird wann was importiert? welche dateien in welchem zustand? jp mb
+# wie kriegehn wir das 'Grosse-Ganze' zusammen?
+# Start-routine?
 
 INITIAL_STATE = 'initial'
 TRAIN_STATE = 'train'

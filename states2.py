@@ -72,8 +72,8 @@ class TrainState(AppState):
         self.register_transition(WRITE_STATE)
 
     def run(self):
-        #warum hier nicht 'trained_parameter'??? übergeben wir später dem Coordinator, nicht?
         parameter = self.await_data() # wir warten auf die parameter vom coordinator
+        trained_parameter = average_weights(parameter, model) #model = alex NN JP
         # NN training code goes here using parameter
         self.send_data_to_coordinator(trained_parameter) # wir schicken die trained_parameter an den coordinator
         if self.is_coordinator:
@@ -97,25 +97,12 @@ class AggregateState(AppState):
 
 
     def run(self):
-        #Warum hier auch nicht tranined_parameter? 
+        #Warum hier auch nicht tranined_parameter? erledigt?jp
         parameter = self.aggregate_data()
-        # Aggregation code goes here
+        trained_parameter = average_weights(parameter, model) #model NN wie TRAIN STATE jo, mb
         if(communicationrounds != 0):
             self.broadcast(trained_parameter, send_to_self=False)
-            #self.broadcast(weighted_parameter, send_to_self=False)
             return TRAIN_STATE
         return TERMINAL_STATE
-    
-    def average_weights(self, params, client_model):
-        global_weights = [np.array(client_model.get_weights(), dtype='object') * 0] * self.load('n_splits')
-        total_n_samples = [0] * self.load('n_splits')
-        for client_models in params:
-            for model_counter, (weights, n_samples) in enumerate(client_models):
-                global_weights[model_counter] += np.array(weights, dtype='object') * n_samples
-                total_n_samples[model_counter] += n_samples
-        updated_weights = []
-        for counter, (w, n) in enumerate(zip(global_weights, total_n_samples)):
-            updated_weights.append(w / n)
-        return updated_weights
 
 

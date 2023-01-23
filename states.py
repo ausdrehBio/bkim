@@ -5,6 +5,8 @@ from model.dataset import get_dataloaders
 
 # FRAGE: wo wird wann was importiert? welche dateien in welchem zustand? jp mb
 
+#TODO: SMPC = Secure Multi-Party Computation
+#TODO: image-Dataset für Clients
 
 INITIAL_STATE = 'initial'
 TRAIN_STATE = 'train'
@@ -46,7 +48,7 @@ class InitialState(AppState):
 
 '''
 wir sind coordinator und wollen die parameter verteilen
-danach gehen wir in den TRAIN_STATE
+danach gehen wir in als coordinator in den AGGREGATE_STATE
 '''
 @app_state(BROADCAST_STATE, role=Role.COORDINATOR)
 class BroadcastState(AppState):
@@ -71,8 +73,10 @@ wir gehen über zum AGGREGATE_STATE
 class TrainState(AppState):
 
     def register(self):
-        self.register_transition(AGGREGATE_STATE, role=Role.COORDINATOR)
-        self.register_transition(WRITE_STATE)
+        self.register_transition(AGGREGATE_STATE, role=Role.COORDINATOR) # können wir erneut in den train_state gehen?
+        self.register_transition(WRITE_STATE) # brauchen wir den noch?
+
+        self.register_transition(TRAIN_STATE)
 
     def run(self):
         self.log("Waiting for aggregated parameters from coordinator...")
@@ -95,10 +99,15 @@ class TrainState(AppState):
         iteration = self.load('iteration')
         
         if iteration <= epochs:
-            if self.is_coordinator:
+            if self.is_coordinator:     # können wir coordinator sein, wenn wir in @app_state(TRAIN_STATE, role=Role.Participant) sind?
                 return AGGREGATE_STATE
             return TRAIN_STATE
         return TERMINAL_STATE
+        '''
+        wäre es möglich, dass der Participant immer nur von TrainState zu TrainState geht?
+        und wir die Entscheidung zwischen weiter trainieren und terminieren auschließlich im Coordinator machen?
+        --> "If the coordinator transitions into the 'terminal' state, the whole computation will be shut down."
+        '''
 
 
 '''
@@ -126,5 +135,5 @@ class AggregateState(AppState):
 
         if (current_iteration <= epochs):
             self.broadcast(aggregated_parameters, send_to_self=False)
-            return TRAIN_STATE
+            return TRAIN_STATE  # eher BROADCAST_STATE oder?
         return TERMINAL_STATE

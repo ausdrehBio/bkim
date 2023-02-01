@@ -66,9 +66,9 @@ class ImageDataset(Dataset):
     """
 
     def __init__(self, path, transform=None, target_transform=None):
-        self.data, self.labels = read_medmnist(path, concat_split=True)
-        self.data = self.data.astype("float32")
-        self.labels = self.labels.astype("long")
+        data, labels = read_medmnist(path, concat_split=True)
+        self.data = torch.from_numpy(data).float().unsqueeze(0).transpose(0, 1)
+        self.labels = torch.from_numpy(labels).float().squeeze(1)
         self.transform = transform
         self.target_transform = target_transform
 

@@ -1,5 +1,5 @@
 from FeatureCloud.app.engine.app import AppState, app_state, Role
-from model.model import CNN
+from model.model import FederatedCNN
 from model.weights import average_weights
 from model.dataset import get_dataloaders
 

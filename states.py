@@ -34,7 +34,14 @@ class InitialState(AppState):
         self.store('epochs', 20)
 
         self.log("Reading data...")
-        data = get_dataloaders()
+        #############################
+        # get_dataloaders(path)-> benötigt Path auf dataset für dataset.py
+        # ggf gesplittet für lokales training?
+        # nur: jp hat kein plan, nach stundenlangem suchen, wo die sch...
+        # datei abgelegt werden muss, damit sie die .app lesen kann und
+        # die testumgebung auf fc.ai darauf zugreift... f*** fc (sorry), hab euch alle lieb
+        #############################
+        data = get_dataloaders() 
         self.store('data', data)
 
         self.log('Initialising model...')

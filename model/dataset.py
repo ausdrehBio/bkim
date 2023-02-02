@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import transforms
 
 
-def read_medmnist(path, concat_split=False):
+def read_medmnist(path):
     """
     Read MedMNIST datasets in numpy zip file format .npz
     containing images and their labels.
@@ -22,7 +22,7 @@ def read_medmnist(path, concat_split=False):
     if not fp.suffix != "npz":
         raise ValueError(f"File needs to be of type *.npz. Given: {fp.suffix}")
     dataset = np.load(path, allow_pickle=True)
-    if concat_split:
+    if "train_images" in dataset.keys():
         images = np.concatenate([
             dataset["train_images"],
             dataset["test_images"],
@@ -34,7 +34,7 @@ def read_medmnist(path, concat_split=False):
             dataset["val_labels"],
         ])
         return images, labels
-    return dataset
+    return dataset["images"], dataset["labels"]
 
 
 def get_dataloaders(path, train_test_split=(0.8, 0.2)):
@@ -66,7 +66,7 @@ class ImageDataset(Dataset):
     """
 
     def __init__(self, path, transform=None, target_transform=None):
-        data, labels = read_medmnist(path, concat_split=True)
+        data, labels = read_medmnist(path)
         self.data = torch.from_numpy(data).float().unsqueeze(0).transpose(0, 1)
         self.labels = torch.from_numpy(labels).float().squeeze(1)
         self.transform = transform

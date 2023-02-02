@@ -16,7 +16,7 @@ class FederatedCNN(nn.Module):
     Federated CNN model.
     """
 
-    def __init__(self, in_channels, num_classes,device=None):
+    def __init__(self, in_channels, num_classes, device=None):
         """
         Initialize the model.
 
@@ -27,7 +27,7 @@ class FederatedCNN(nn.Module):
         super().__init__()
 
         if not device:
-            self.device = get_device()
+            self.device = get_device(verbose=False)
         else:
             self.device = device
 
@@ -106,7 +106,7 @@ class FederatedCNN(nn.Module):
                 p = w[i] if isinstance(w[i], np.ndarray) else np.array(w[i], dtype='float32')
                 param.data = torch.from_numpy(p).to(device=torch.device)
 
-    def train_model(self, epochs, optimizer, criterion, train_loader, test_loader):
+    def train_model(self, epochs, optimizer, criterion, train_loader, test_loader, mode="train"):
         """
         Train the model for a given number of epochs.
 
@@ -115,6 +115,7 @@ class FederatedCNN(nn.Module):
         :param criterion: loss function to use for training
         :param train_loader: data loader for the training data
         :param test_loader: data loader for the test data
+        :param mode: "train" or "eval
         :return: tuple of dictionaries of metrics for training and testing
         """
         self.to(self.device)
@@ -124,22 +125,25 @@ class FederatedCNN(nn.Module):
 
         for _ in tqdm(range(epochs)):
 
-            train_metrics = self._train_epoch(
-                mode="train",
-                data_loader=train_loader,
-                optimizer=optimizer,
-                criterion=criterion,
-            )
-            test_metrics = self._train_epoch(
+            if mode == "train":
+                metrics = self._train_epoch(
+                    mode="train",
+                    data_loader=train_loader,
+                    optimizer=optimizer,
+                    criterion=criterion,
+                )
+
+                for k, v in metrics.items():
+                    l_train_metrics[k].append(v)
+
+            metrics = self._train_epoch(
                 mode="test",
                 data_loader=test_loader,
                 optimizer=optimizer,
                 criterion=criterion,
             )
 
-            for k, v in train_metrics.items():
-                l_train_metrics[k].append(v)
-            for k, v in test_metrics.items():
+            for k, v in metrics.items():
                 l_test_metrics[k].append(v)
 
         return l_train_metrics, l_test_metrics

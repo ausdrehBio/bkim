@@ -38,7 +38,7 @@ class InitialState(AppState):
         self.store('data', data)
 
         self.log('Initialising model...')
-        model = CNN()
+        model = FederatedCNN()
         self.store('model', model)
 
         if self.is_coordinator:

@@ -108,11 +108,12 @@ class TrainState(AppState):
         
         self.log('Initialising local model with new aggregated global parameters...')
         print(f'------------------>',len(parameters))
-        model.set_parameters(parameters)
+        #model.set_parameters(parameters)  #andre sagt nein :P
 
         data = self.load('data')
         self.log('Training local model...')
-        model.train_epoch('train', data, optimizer, criterion)
+        model._train_epoch('train', data, optimizer, criterion)
+
         self.log('Finished training local model...')
 
         local_parameters = model.get_parameters

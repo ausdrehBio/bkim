@@ -2,7 +2,7 @@ from FeatureCloud.app.engine.app import AppState, app_state, Role
 from model.model import FederatedCNN
 from model.weights import average_weights
 from model.dataset import get_dataloaders
-import os
+import torch
 
 
 
@@ -47,6 +47,7 @@ class InitialState(AppState):
         self.store('data', data)
 
         self.log('Initialising model...')
+        torch.manual_seed(42)
         model = FederatedCNN(1,1)
         self.store('model', model)
 
@@ -89,20 +90,29 @@ class TrainState(AppState):
 
     def run(self):
         self.log("Waiting for aggregated parameters from coordinator...")
-        if self.is_coordinator:
-            #send data to participants
-            parameters = self.load('aggregated_parameters')
-            self.broadcast(parameters, send_to_self=False)
-        else:    
-            parameters = self.await_data()
-
         model = self.load('model')
+
+        if self.load('iteration')==0:
+            parameters = model.get_parameters()
+            print(f'------------------> ITER 1', len(parameters))
+            
+            #send data to participants
+        else:
+            if self.is_coordinator:
+                parameters = self.load('aggregated_parameters')
+                #self.broadcast(parameters, send_to_self=False)
+            else:    
+                parameters = self.await_data()
+                print(f'------------------> ITER n', len(parameters))
+
+        
         self.log('Initialising local model with new aggregated global parameters...')
+        print(f'------------------>',len(parameters))
         model.set_parameters(parameters)
 
         data = self.load('data')
         self.log('Training local model...')
-        model.train(data)
+        model.train_epoch('train', data, optimizer, criterion)
         self.log('Finished training local model...')
 
         local_parameters = model.get_parameters
@@ -138,9 +148,11 @@ class AggregateState(AppState):
         self.register_transition(TERMINAL_STATE, role=Role.COORDINATOR)
 
     def run(self):
+
         parameters = self.gather_data()
         model = self.load('model')
-        aggregated_parameters = average_weights(parameters, model) 
+        aggregated_parameters = average_weights(parameters, model)
+        self.store('aggregated_parameters', aggregated_parameters)
 
         epochs = self.load('epochs')
         current_iteration = self.load('iteration')

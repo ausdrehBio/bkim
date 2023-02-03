@@ -2,6 +2,7 @@ import torch
 
 
 def get_device(force_cpu=False, verbose=True):
+    '''
     if verbose:
         print(f"Is CUDA supported by this system? {torch.cuda.is_available()}")
     if torch.cuda.is_available() or not force_cpu:
@@ -13,6 +14,7 @@ def get_device(force_cpu=False, verbose=True):
 
         return torch.device('cuda')
     else:
-        return torch.device('cpu')
+    '''
+    return torch.device('cpu')
 
 

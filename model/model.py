@@ -126,7 +126,7 @@ class FederatedCNN(nn.Module):
         for _ in tqdm(range(epochs)):
 
             if mode == "train":
-                metrics = self._train_epoch(
+                metrics = self.train_epoch(
                     mode="train",
                     data_loader=train_loader,
                     optimizer=optimizer,
@@ -136,7 +136,7 @@ class FederatedCNN(nn.Module):
                 for k, v in metrics.items():
                     l_train_metrics[k].append(v)
 
-            metrics = self._train_epoch(
+            metrics = self.train_epoch(
                 mode="test",
                 data_loader=test_loader,
                 optimizer=optimizer,
@@ -148,7 +148,7 @@ class FederatedCNN(nn.Module):
 
         return l_train_metrics, l_test_metrics
 
-    def _train_epoch(self, mode, data_loader, optimizer, criterion):
+    def train_epoch(self, mode, data_loader, optimizer, criterion):
         """
         Train or test the model for one epoch.
 

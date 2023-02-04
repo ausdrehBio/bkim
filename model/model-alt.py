@@ -16,9 +16,10 @@ class FederatedCNN(nn.Module):
     Federated CNN model.
     """
 
-    def __init__(self, in_channels, num_classes,device=None):
+    def __init__(self, in_channels, num_classes, device=None):
         """
         Initialize the model.
+
         :param in_channels: number of input channels
         :param num_classes: number of output classes
         :param device: device to use for training. If None, the device is automatically detected.
@@ -26,7 +27,7 @@ class FederatedCNN(nn.Module):
         super().__init__()
 
         if not device:
-            self.device = get_device()
+            self.device = get_device(verbose=False)
         else:
             self.device = device
 
@@ -69,6 +70,7 @@ class FederatedCNN(nn.Module):
     def forward(self, x):
         """
         Forward pass of the model.
+
         :param x: input tensor
         :return: output tensor
         """
@@ -84,6 +86,7 @@ class FederatedCNN(nn.Module):
     def get_parameters(self):
         """
         Get the parameters of the model.
+
         :return: list of numpy arrays containing the parameters
         """
         with torch.no_grad():
@@ -95,21 +98,24 @@ class FederatedCNN(nn.Module):
     def set_parameters(self, w):
         """
         Set the parameters of the model to the given values.
+
         :param w: list of numpy arrays containing the parameters
         """
-        params = map(lambda p: torch.from_numpy(p), w)
         with torch.no_grad():
-            for model_params, p in zip(self.parameters(), params):
-                model_params.data.copy_(p)
+            for i, (name, param) in enumerate(self.named_parameters()):
+                p = w[i] if isinstance(w[i], np.ndarray) else np.array(w[i], dtype='float32')
+                param.data = torch.from_numpy(p).to(device=torch.device)
 
-    def train_model(self, epochs, optimizer, criterion, train_loader, test_loader):
+    def train_model(self, epochs, optimizer, criterion, train_loader, test_loader, mode="train"):
         """
         Train the model for a given number of epochs.
+
         :param epochs: number of epochs to train for
         :param optimizer: optimizer to use for training
         :param criterion: loss function to use for training
         :param train_loader: data loader for the training data
         :param test_loader: data loader for the test data
+        :param mode: "train" or "eval
         :return: tuple of dictionaries of metrics for training and testing
         """
         self.to(self.device)
@@ -119,29 +125,33 @@ class FederatedCNN(nn.Module):
 
         for _ in tqdm(range(epochs)):
 
-            train_metrics = self._train_epoch(
-                mode="train",
-                data_loader=train_loader,
-                optimizer=optimizer,
-                criterion=criterion,
-            )
-            test_metrics = self._train_epoch(
+            if mode == "train":
+                metrics = self.train_epoch(
+                    mode="train",
+                    data_loader=train_loader,
+                    optimizer=optimizer,
+                    criterion=criterion,
+                )
+
+                for k, v in metrics.items():
+                    l_train_metrics[k].append(v)
+
+            metrics = self.train_epoch(
                 mode="test",
                 data_loader=test_loader,
                 optimizer=optimizer,
                 criterion=criterion,
             )
 
-            for k, v in train_metrics.items():
-                l_train_metrics[k].append(v)
-            for k, v in test_metrics.items():
+            for k, v in metrics.items():
                 l_test_metrics[k].append(v)
 
         return l_train_metrics, l_test_metrics
 
-    def _train_epoch(self, mode, data_loader, optimizer, criterion):
+    def train_epoch(self, mode, data_loader, optimizer, criterion):
         """
         Train or test the model for one epoch.
+
         :param mode: "train" or "test"
         :param data_loader: data loader for the data to train/test on
         :param optimizer: optimizer to use for training
@@ -181,7 +191,7 @@ class FederatedCNN(nn.Module):
 
 
 if __name__ == '__main__':
-    SRC_PATH = "./resources/pneu.npz"
+    SRC_PATH = "./resources/pneumoniamnist.npz"
 
     model = FederatedCNN(in_channels=1, num_classes=1)
 

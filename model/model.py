@@ -191,7 +191,7 @@ class FederatedCNN(nn.Module):
 
 
 if __name__ == '__main__':
-    SRC_PATH = "./resources/pneumoniamnist.npz"
+    SRC_PATH = "./resources/pneu.npz"
 
     model = FederatedCNN(in_channels=1, num_classes=1)
 

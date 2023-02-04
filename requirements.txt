@@ -7,9 +7,9 @@ bios
 pydot
 pyyaml
 matplotlib
-medmnist
 numpy
 torch
 torchmetrics
 torchvision
 tqdm
+medmnist

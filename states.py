@@ -78,6 +78,9 @@ class TrainState(AppState):
         criterion = nn.BCEWithLogitsLoss()
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.7)
         model.train_epoch('train', data, optimizer, criterion)
+        #Danke für die App. Meine Lief allerdins erst, als ich model._train_epoch('train', data, optimizer, criterion), 
+        #also mit einem Unterstrich davor aufgerufen habe. In model.py ist in Zeile 142 das genuso hinterlegt. Aber mit
+        #zusatz '-' vor der Methode läufts.
         self.log('Finished training local model...')
 
         local_parameters = model.get_parameters()

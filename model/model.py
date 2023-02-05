@@ -119,15 +119,9 @@ class FederatedCNN(nn.Module):
 
         for _ in tqdm(range(epochs)):
 
-            train_metrics = self._train_epoch(
-                mode="train",
-                data_loader=train_loader,
-                optimizer=optimizer,
-                criterion=criterion,
-            )
-            test_metrics = self._train_epoch(
-                mode="test",
-                data_loader=test_loader,
+            train_metrics, test_metrics = self._train_epoch(
+                train_loader=train_loader,
+                test_loader=test_loader,
                 optimizer=optimizer,
                 criterion=criterion,
             )
@@ -139,7 +133,12 @@ class FederatedCNN(nn.Module):
 
         return l_train_metrics, l_test_metrics
 
-    def _train_epoch(self, mode, data_loader, optimizer, criterion):
+    def _train_epoch(self, train_loader, test_loader, optimizer, criterion):
+        train_metrics = self._train_step("train", train_loader, optimizer, criterion)
+        test_metrics = self._train_step("test", test_loader, optimizer, criterion)
+        return train_metrics, test_metrics
+
+    def _train_step(self, mode, data_loader, optimizer, criterion):
         """
         Train or test the model for one epoch.
         :param mode: "train" or "test"
@@ -176,7 +175,6 @@ class FederatedCNN(nn.Module):
                 loss.backward()
                 optimizer.step()
 
-        # return mean of batch metrics
         return {k: np.mean(v) for k, v in metrics.items()}
 
 

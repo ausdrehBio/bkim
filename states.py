@@ -36,7 +36,8 @@ class InitialState(AppState):
         self.log("Reading data...")
         datafile = '/mnt/input/pneu.npz'
         train_loader, test_loader = get_dataloaders(datafile)   # raised error. Hier Pfad..
-        self.store('data', train_loader)
+        self.store('train_data', train_loader)
+        self.store('test_data', test_loader)
 
         self.log('Initialising model...')
         # Fixed seed so all clients start with the same model
@@ -73,14 +74,12 @@ class TrainState(AppState):
         set_model_params(model, parameters)
 
         self.log('Training local model...')
-        data = self.load('data')
+        train_data = self.load('train_data')
+        test_data = self.load('test_data')
 
         criterion = nn.BCEWithLogitsLoss()
         optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.7)
-        model.train_epoch('train', data, optimizer, criterion)
-        #Danke für die App. Meine Lief allerdins erst, als ich model._train_epoch('train', data, optimizer, criterion), 
-        #also mit einem Unterstrich davor aufgerufen habe. In model.py ist in Zeile 142 das genuso hinterlegt. Aber mit
-        #zusatz '-' vor der Methode läufts.
+        train_metrics, test_metrics = model._train_epoch('train', train_data, test_data, optimizer, criterion)
         self.log('Finished training local model...')
 
         local_parameters = model.get_parameters()

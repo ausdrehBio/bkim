@@ -37,12 +37,12 @@ def read_medmnist(path):
     return dataset["images"], dataset["labels"]
 
 
-def get_dataloaders(path, train_test_split=(0.8, 0.2)):
+def get_dataloaders(path, train_val_test_split=(0.75, 0.12, 0.13)):
     """
     Return train- and test dataloaders.
 
     :param path: Path to data.
-    :param train_test_split: Train-test ratio
+    :param train_val_test_split: Train-test ratio
     :return: train_dataloader, test_dataloader
     """
     transform = transforms.Compose([
@@ -50,14 +50,15 @@ def get_dataloaders(path, train_test_split=(0.8, 0.2)):
         transforms.Normalize(mean=[.5], std=[.5]),
     ])
     dataset = ImageDataset(path, transform=transform)
-    train_set, val_set = torch.utils.data.random_split(
+    train_set, val_set, test_set = torch.utils.data.random_split(
         dataset,
-        train_test_split,
+        train_val_test_split,
         generator=torch.Generator().manual_seed(42)
     )
     train_dataloader = DataLoader(train_set, batch_size=32, shuffle=True)
     val_dataloader = DataLoader(val_set, batch_size=32, shuffle=True)
-    return train_dataloader, val_dataloader
+    test_dataloader = DataLoader(test_set, batch_size=32, shuffle=True)
+    return train_dataloader, val_dataloader, test_dataloader
 
 
 class ImageDataset(Dataset):

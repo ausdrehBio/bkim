@@ -138,6 +138,14 @@ class FederatedCNN(nn.Module):
         test_metrics = self._train_step("test", test_loader, optimizer, criterion)
         return train_metrics, test_metrics
 
+    def train_epoch(self, train_loader, optimizer, criterion):
+        train_metrics = self._train_step("train", train_loader, optimizer, criterion)
+        return train_metrics
+
+    def test_epoch(self, test_loader, criterion):
+        test_metrics = self._train_step("test", test_loader, None, criterion)
+        return test_metrics
+
     def _train_step(self, mode, data_loader, optimizer, criterion):
         """
         Train or test the model for one epoch.

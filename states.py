@@ -31,7 +31,7 @@ class InitialState(AppState):
     def run(self):
 
         self.store('iteration', 0)
-        self.store('epochs', 1)
+        self.store('epochs', 10)
 
         self.log("Reading data...")
         datafile = '/mnt/input/pneu.npz'
@@ -62,7 +62,9 @@ class TrainState(AppState):
         self.register_transition(WRITE_STATE, role=Role.PARTICIPANT)
 
     def run(self):
-        self.log("Waiting for aggregated parameters from coordinator...")
+        iteration = self.load('iteration')
+        self.log(f"Starting epoch {iteration + 1}...")
+
         model = self.load('model')
         stop = False
 
@@ -72,22 +74,24 @@ class TrainState(AppState):
             # but all clients start with the same model
             parameters = model.get_parameters()
         else:
+            self.log("Waiting for aggregated parameters from coordinator...")
             if self.is_coordinator:
                 parameters = self.load('aggregated_parameters')
             else:    
                 parameters, stop = self.await_data()
 
+        self.log(f"received stop flag: {stop}")
         self.log('Initialising local model with new aggregated global parameters...')
         set_model_params(model, parameters)
 
         if stop:
+            self.log('Received stop flag from coordinator. Terminating...')
             self.store("model", model)
             return WRITE_STATE
 
         self.log('Training local model...')
         train_data = self.load('train_data')
         val_data = self.load('val_data')
-
         criterion = self.load('criterion')
         optimizer = self.load('optimizer')
 
@@ -95,18 +99,20 @@ class TrainState(AppState):
         val_metrics = model.test_epoch(val_data, criterion)
         self.log('Finished training local model with test metrics: {}'.format(val_metrics))
 
+        # save test metrics to file
+        with open('/mnt/output/val_metrics.txt', 'a+') as f:
+            f.write(str(val_metrics) + "\n")
+
         local_parameters = model.get_parameters()
         self.log('Sending data to coordinator...')
         self.send_data_to_coordinator(local_parameters)  # gather data in Aggregate state
 
-        epochs = self.load('epochs')
-        iteration = self.load('iteration')
-        
-        if iteration <= epochs:
-            if self.is_coordinator: 
-                return AGGREGATE_STATE
-            return TRAIN_STATE
-        return WRITE_STATE
+        iteration += 1
+        self.store('iteration', iteration)
+
+        if self.is_coordinator:
+            return AGGREGATE_STATE
+        return TRAIN_STATE
 
 
 @app_state(AGGREGATE_STATE, role=Role.COORDINATOR)
@@ -122,11 +128,9 @@ class AggregateState(AppState):
         self.store('aggregated_parameters', aggregated_parameters)
 
         epochs = self.load('epochs')
-        current_iteration = self.load('iteration')
-        current_iteration += 1
-        self.store('iteration', current_iteration)
+        iteration = self.load('iteration')
 
-        if current_iteration <= epochs:
+        if iteration <= epochs:
             stop = False
             self.broadcast_data((aggregated_parameters, stop), send_to_self=False)
             return TRAIN_STATE
@@ -146,7 +150,6 @@ class WriteState(AppState):
         def run(self):
             model = self.load('model')
 
-            self.log('Writing model to file...')
             test_data = self.load('test_data')
             criterion = self.load('criterion')
 
@@ -159,6 +162,7 @@ class WriteState(AppState):
             self.log('Finished testing final model with test metrics: {}'.format(test_metrics))
 
             if self.is_coordinator:
+                self.log('Writing model to file...')
                 torch.save(model.state_dict(), '/mnt/output/model.pt')
                 self.send_data_to_coordinator("DONE")
                 self.gather_data()

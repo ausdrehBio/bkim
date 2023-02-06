@@ -7,9 +7,6 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-#TODO: SMPC = Secure Multi-Party Computation
-#TODO: image-Dataset für Clients
-
 INITIAL_STATE = 'initial'
 TRAIN_STATE = 'train'
 AGGREGATE_STATE = 'aggregate'
@@ -30,7 +27,7 @@ class InitialState(AppState):
 
     def run(self):
 
-        self.store('iteration', 0)
+        self.store('iteration', 1)
         self.store('epochs', 10)
 
         self.log("Reading data...")
@@ -69,7 +66,7 @@ class TrainState(AppState):
         stop = False
 
         # get initial parameters
-        if self.load('iteration') == 0:
+        if self.load('iteration') == 1:
             # initially no aggregated parameters are available
             # but all clients start with the same model
             parameters = model.get_parameters()
@@ -161,11 +158,11 @@ class WriteState(AppState):
 
             self.log('Finished testing final model with test metrics: {}'.format(test_metrics))
 
+            self.send_data_to_coordinator("DONE")
+
             if self.is_coordinator:
                 self.log('Writing model to file...')
                 torch.save(model.state_dict(), '/mnt/output/model.pt')
-                self.send_data_to_coordinator("DONE")
-                self.gather_data()
-            else:
-                self.send_data_to_coordinator("DONE")
+                self.gather_data()  # wait for all participants to finish
+
             return TERMINAL_STATE

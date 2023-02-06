@@ -28,7 +28,7 @@ class InitialState(AppState):
     def run(self):
 
         self.store('iteration', 1)
-        self.store('epochs', 10)
+        self.store('epochs', 30)
 
         self.log("Reading data...")
         datafile = '/mnt/input/pneu.npz'

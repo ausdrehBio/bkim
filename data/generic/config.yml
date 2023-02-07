@@ -1,0 +1,23 @@
+
+# Data parameters:
+data:
+  file: pneu.npz
+  train_val_test_split:
+    - 0.75  # train split
+    - 0.12  # validation split
+    - 0.13  # test split
+  split_seed: 42
+
+# Training hyperparameter:
+hyperparameter:
+  epochs: 10
+  batch_size: 32
+  learn_rate: 0.001
+  momentum: 0.7
+  positive_weight: 1  # weight of positive class in loss function
+
+# Model parameters:
+model:
+  init_seed: 42  # initial seed for client model parameters
+  in_channels: 1
+  out_channels: 1

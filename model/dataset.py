@@ -37,12 +37,14 @@ def read_medmnist(path):
     return dataset["images"], dataset["labels"]
 
 
-def get_dataloaders(path, train_val_test_split=(0.75, 0.12, 0.13)):
+def get_dataloaders(path, train_val_test_split=(0.75, 0.12, 0.13), batch_size=32, seed=42):
     """
     Return train- and test dataloaders.
 
     :param path: Path to data.
     :param train_val_test_split: Train-test ratio
+    :param batch_size: Batch size
+    :param seed: Random seed
     :return: train_dataloader, test_dataloader
     """
     transform = transforms.Compose([
@@ -53,11 +55,12 @@ def get_dataloaders(path, train_val_test_split=(0.75, 0.12, 0.13)):
     train_set, val_set, test_set = torch.utils.data.random_split(
         dataset,
         train_val_test_split,
-        generator=torch.Generator().manual_seed(42)
+        generator=torch.Generator().manual_seed(seed)
     )
-    train_dataloader = DataLoader(train_set, batch_size=32, shuffle=True)
-    val_dataloader = DataLoader(val_set, batch_size=32, shuffle=True)
-    test_dataloader = DataLoader(test_set, batch_size=32, shuffle=True)
+    print(len(train_set), len(val_set), len(test_set))
+    train_dataloader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
+    val_dataloader = DataLoader(val_set, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_set, batch_size=batch_size, shuffle=True)
     return train_dataloader, val_dataloader, test_dataloader
 
 

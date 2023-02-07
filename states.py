@@ -1,3 +1,4 @@
+import yaml
 from FeatureCloud.app.engine.app import AppState, app_state, Role
 from model.model import FederatedCNN
 from model.weights import get_avg_params, set_model_params
@@ -14,6 +15,9 @@ WRITE_STATE = 'write'
 TERMINAL_STATE = 'terminal'
 BROADCAST_STATE = 'broadcast'
 
+INPUT_DIR = '/mnt/input'
+OUTPUT_DIR = '/mnt/output'
+
 
 @app_state(INITIAL_STATE)
 class InitialState(AppState):
@@ -23,23 +27,46 @@ class InitialState(AppState):
 
     def register(self):
         self.register_transition(TRAIN_STATE, role=Role.BOTH)
-        #self.register_transition(BROADCAST_STATE, role=Role.COORDINATOR)
 
     def run(self):
+        self.log("Reading config...")
+        with open(f'{INPUT_DIR}/config.yml', 'r') as stream:
+            config = yaml.safe_load(stream)
 
-        self.store('iteration', 1)
-        self.store('epochs', 30)
+        self.log("Getting dataloaders...")
+        datafile = config["data"]["file"]
+        train_val_test_split = tuple(config["data"]["train_val_test_split"])
+        batch_size = config["hyperparameter"]["batch_size"]
+        split_seed = config["data"]["split_seed"]
 
-        self.log("Reading data...")
-        datafile = '/mnt/input/pneu.npz'
-        train_loader, val_loader, test_loader = get_dataloaders(datafile)   # raised error. Hier Pfad..
+        assert sum(train_val_test_split) == 1.0
+
+        train_loader, val_loader, test_loader = get_dataloaders(
+            path=f'{INPUT_DIR}/{datafile}',
+            train_val_test_split=train_val_test_split,
+            batch_size=batch_size,
+            seed=split_seed,
+        )
 
         self.log('Initialising model...')
-        torch.manual_seed(42)  # Fixed seed so all clients start with the same model
-        model = FederatedCNN(1, 1, device=torch.device('cpu'))
-        criterion = nn.BCEWithLogitsLoss()
-        optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.7)
+        model_seed = config["model"]["init_seed"]
+        in_channels = config["model"]["in_channels"]
+        out_channels = config["model"]["out_channels"]
 
+        torch.manual_seed(model_seed)  # Fixed seed so all clients start with the same model
+        model = FederatedCNN(in_channels, out_channels, device=torch.device('cpu'))
+
+        self.log("Setting up hyperparameter...")
+        learn_rate = config["hyperparameter"]["learn_rate"]
+        momentum = config["hyperparameter"]["momentum"]
+        epochs = config["hyperparameter"]["epochs"]
+        positive_weight = config["hyperparameter"]["positive_weight"]
+
+        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(positive_weight))
+        optimizer = optim.SGD(model.parameters(), lr=learn_rate, momentum=momentum)
+
+        self.store('iteration', 1)
+        self.store('epochs', epochs)
         self.store('model', model)
         self.store('criterion', criterion)
         self.store('optimizer', optimizer)
@@ -60,10 +87,10 @@ class TrainState(AppState):
 
     def run(self):
         iteration = self.load('iteration')
-        self.log(f"Starting epoch {iteration + 1}...")
+        self.log(f"Starting epoch {iteration}...")
 
         model = self.load('model')
-        stop = False
+        stop = False  # flag to indicate if training should stop
 
         # get initial parameters
         if self.load('iteration') == 1:
@@ -92,17 +119,17 @@ class TrainState(AppState):
         criterion = self.load('criterion')
         optimizer = self.load('optimizer')
 
-        _ = model.train_epoch(train_data, optimizer, criterion)
+        _, no_samples = model.train_epoch(train_data, optimizer, criterion, return_no_samples=True)
         val_metrics = model.test_epoch(val_data, criterion)
         self.log('Finished training local model with test metrics: {}'.format(val_metrics))
 
         # save test metrics to file
-        with open('/mnt/output/val_metrics.txt', 'a+') as f:
+        with open(f'{OUTPUT_DIR}/val_metrics.txt', 'a+') as f:
             f.write(str(val_metrics) + "\n")
 
         local_parameters = model.get_parameters()
         self.log('Sending data to coordinator...')
-        self.send_data_to_coordinator(local_parameters)  # gather data in Aggregate state
+        self.send_data_to_coordinator((local_parameters, no_samples))  # gather data in Aggregate state
 
         iteration += 1
         self.store('iteration', iteration)
@@ -120,8 +147,9 @@ class AggregateState(AppState):
         self.register_transition(WRITE_STATE, role=Role.COORDINATOR)
 
     def run(self):
-        parameters = self.gather_data()
-        aggregated_parameters = get_avg_params(parameters)
+        client_data = self.gather_data()
+        parameters, no_samples = zip(*client_data)
+        aggregated_parameters = get_avg_params(parameters, no_samples)
         self.store('aggregated_parameters', aggregated_parameters)
 
         epochs = self.load('epochs')
@@ -140,29 +168,28 @@ class AggregateState(AppState):
 @app_state(WRITE_STATE, role=Role.BOTH)
 class WriteState(AppState):
 
-        def register(self):
-            self.register_transition(TERMINAL_STATE, role=Role.BOTH)
-            # self.register_transition(TERMINAL_STATE, role=Role.PARTICIPANT)
+    def register(self):
+        self.register_transition(TERMINAL_STATE, role=Role.BOTH)
 
-        def run(self):
-            model = self.load('model')
+    def run(self):
+        model = self.load('model')
 
-            test_data = self.load('test_data')
-            criterion = self.load('criterion')
+        test_data = self.load('test_data')
+        criterion = self.load('criterion')
 
-            test_metrics = model.test_epoch(test_data, criterion)
+        test_metrics = model.test_epoch(test_data, criterion)
 
-            # save test metrics to file
-            with open('/mnt/output/test_metrics.txt', 'w') as f:
-                f.write(str(test_metrics))
+        # save test metrics to file
+        with open(f'{OUTPUT_DIR}/test_metrics.txt', 'w') as f:
+            f.write(str(test_metrics))
 
-            self.log('Finished testing final model with test metrics: {}'.format(test_metrics))
+        self.log('Finished testing final model with test metrics: {}'.format(test_metrics))
 
-            self.send_data_to_coordinator("DONE")
+        self.send_data_to_coordinator("DONE")
 
-            if self.is_coordinator:
-                self.log('Writing model to file...')
-                torch.save(model.state_dict(), '/mnt/output/model.pt')
-                self.gather_data()  # wait for all participants to finish
+        if self.is_coordinator:
+            self.log('Writing model to file...')
+            torch.save(model.state_dict(), f'{OUTPUT_DIR}/model.pt')
+            self.gather_data()  # wait for all participants to finish
 
-            return TERMINAL_STATE
+        return TERMINAL_STATE

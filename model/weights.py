@@ -40,15 +40,21 @@ def average_weights(self, params, client_model):
         return updated_weights
 
 
-def get_avg_params(params):
+def get_avg_params(params, param_weights=None):
     """
     Get the average of the parameters
 
     :param models: List of models to get parameters from
+    :param param_weights: List of weights for each parameter
     :return: List of average parameters
     """
     # Align the parameters and average them
-    params_avg = [sum(p) / len(p) for p in zip(*params)]
+    if not param_weights:
+        params_avg = [sum(p) / len(p) for p in zip(*params)]  # Average
+    else:
+        param_weights = [w / sum(param_weights) for w in param_weights]  # Normalize the weights
+        params = [[p * w for p in param] for param, w in zip(params, param_weights)]  # Weight the parameters
+        params_avg = [sum(p) for p in zip(*params)]  # Weighted average
     return params_avg
 
 

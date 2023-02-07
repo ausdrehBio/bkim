@@ -1,13 +1,11 @@
 from collections import defaultdict
 
 import numpy as np
-from matplotlib import pyplot as plt
-from torch import nn, optim
+from torch import nn
 import torch
-from torchmetrics import Accuracy, AUROC
+from torchmetrics import Accuracy, AUROC, Recall, F1Score
 from tqdm import tqdm
 
-from .dataset import get_dataloaders
 from .util import get_device
 
 
@@ -16,7 +14,7 @@ class FederatedCNN(nn.Module):
     Federated CNN model.
     """
 
-    def __init__(self, in_channels, num_classes,device=None):
+    def __init__(self, in_channels, num_classes, device=None):
         """
         Initialize the model.
         :param in_channels: number of input channels
@@ -63,7 +61,6 @@ class FederatedCNN(nn.Module):
             nn.Linear(128, 128),
             nn.ReLU(),
             nn.Linear(128, num_classes),
-        #    nn.Softmax(dim=1)
         )
 
     def forward(self, x):
@@ -105,6 +102,7 @@ class FederatedCNN(nn.Module):
     def train_model(self, epochs, optimizer, criterion, train_loader, test_loader):
         """
         Train the model for a given number of epochs.
+
         :param epochs: number of epochs to train for
         :param optimizer: optimizer to use for training
         :param criterion: loss function to use for training
@@ -138,24 +136,50 @@ class FederatedCNN(nn.Module):
         test_metrics = self._train_step("test", test_loader, optimizer, criterion)
         return train_metrics, test_metrics
 
-    def train_epoch(self, train_loader, optimizer, criterion):
-        train_metrics = self._train_step("train", train_loader, optimizer, criterion)
-        return train_metrics
+    def train_epoch(self, train_loader, optimizer, criterion, return_no_samples=False):
+        """
+        Train the model for one epoch.
+
+        :param train_loader: data loader for the training data
+        :param optimizer: optimizer to use for training
+        :param criterion: loss function to use for training
+        :param return_no_samples: if True, the number of samples is returned
+        :return: dictionary of metrics or tuple of dictionary of metrics and number of samples if return_no_samples is True
+        """
+
+        if return_no_samples:
+            train_metrics, no_samples = self._train_step("train", train_loader, optimizer, criterion, return_no_samples)
+            return train_metrics, no_samples
+        else:
+            train_metrics = self._train_step("train", train_loader, optimizer, criterion)
+            return train_metrics
 
     def test_epoch(self, test_loader, criterion):
+        """
+        Test the model for one epoch.
+
+        :param test_loader: data loader for the test data
+        :param criterion: loss function to use for training
+        :return: dictionary of metrics
+        """
         test_metrics = self._train_step("test", test_loader, None, criterion)
         return test_metrics
 
-    def _train_step(self, mode, data_loader, optimizer, criterion):
+    def _train_step(self, mode, data_loader, optimizer, criterion, return_no_samples=False):
         """
         Train or test the model for one epoch.
+
         :param mode: "train" or "test"
         :param data_loader: data loader for the data to train/test on
         :param optimizer: optimizer to use for training
         :param criterion: loss function to use for training
-        :return: dictionary of metrics
+        :param return_no_samples: whether to return the number of samples
+        :return: dictionary of metrics and number of samples (if return_no_samples is True)
         """
         accuracy = Accuracy(task="binary").to(self.device)
+        auroc = AUROC(task="binary").to(self.device)
+        recall = Recall(task="binary").to(self.device)
+        f1score = F1Score(task="binary").to(self.device)
         metrics = defaultdict(list)
 
         if mode == "train":
@@ -174,8 +198,12 @@ class FederatedCNN(nn.Module):
             loss = criterion(output, target)
 
             # update metrics
-            metrics["loss"].append(loss.item())
-            metrics["acc"].append(accuracy(output, target).item())
+            metrics["loss"].append(loss.item())  # loss
+            metrics["acc"].append(accuracy(output, target).item())  # accuracy
+            metrics["auroc"].append(auroc(output, target).item())  # area under ROC curve
+            metrics["recall"].append(recall(output, target).item())  # recall
+            metrics["fnr"].append(1 - metrics["recall"][-1])  # false negative rate
+            metrics["f1score"].append(f1score(output, target).item())  # F1 score
 
             # update weights if training
             if mode == "train":
@@ -183,25 +211,6 @@ class FederatedCNN(nn.Module):
                 loss.backward()
                 optimizer.step()
 
+        if return_no_samples:
+            return {k: np.mean(v) for k, v in metrics.items()}, len(data_loader.dataset)
         return {k: np.mean(v) for k, v in metrics.items()}
-
-
-if __name__ == '__main__':
-    SRC_PATH = "./resources/pneu.npz"
-
-    model = FederatedCNN(in_channels=1, num_classes=1)
-
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.7)
-    ce_loss = nn.BCEWithLogitsLoss()
-
-    train_dl, test_dl = get_dataloaders(SRC_PATH)
-
-    train_metrics, test_metrics = model.train_model(
-        epochs=20,
-        train_loader=train_dl,
-        test_loader=test_dl,
-        optimizer=optimizer,
-        criterion=ce_loss,
-    )
-
-    print(train_metrics)
